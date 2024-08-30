@@ -110,7 +110,7 @@ class BlockWatcher(metaclass=Singleton):
     
     @timer_decorator
     def filter_log_in_block(self, block_number, block_timestamp):
-        #block_number = 41327949 # TODO
+        #block_number = 20637820 # TODO
 
         def filter_paircreated_log(block_number):
             pair_created_logs = self.factory.events.PairCreated().get_logs(
