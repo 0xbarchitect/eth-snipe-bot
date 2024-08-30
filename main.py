@@ -311,7 +311,6 @@ def execution_process(execution_broker, report_broker):
         bot_factory_abi=BOT_FACTORY_ABI,
         bot_implementation=os.environ.get('BOT_IMPLEMENTATION'),
         pair_factory=os.environ.get('FACTORY_ADDRESS'),
-        bot_db=False, # TODO
     )
 
     asyncio.run(executor.run())
