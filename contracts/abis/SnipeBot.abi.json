@@ -1,0 +1,115 @@
+[
+    {
+      "type": "fallback",
+      "stateMutability": "payable"
+    },
+    {
+      "type": "receive",
+      "stateMutability": "payable"
+    },
+    {
+      "type": "function",
+      "name": "buy",
+      "inputs": [
+        {
+          "name": "erc20",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "deadline",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "amounts",
+          "type": "uint256[]",
+          "internalType": "uint256[]"
+        }
+      ],
+      "stateMutability": "payable"
+    },
+    {
+      "type": "function",
+      "name": "config",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "owner",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "router",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "factory",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "weth",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "inspect_transfer",
+      "inputs": [
+        {
+          "name": "erc20",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "amount",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "received",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "sell",
+      "inputs": [
+        {
+          "name": "erc20",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "to",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "deadline",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "amounts",
+          "type": "uint256[]",
+          "internalType": "uint256[]"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    }
+  ]

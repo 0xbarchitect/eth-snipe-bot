@@ -1,0 +1,1 @@
+from factory.bot_factory import *
