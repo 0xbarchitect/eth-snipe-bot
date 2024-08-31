@@ -65,18 +65,24 @@ class EthCallSimulator:
             # buy
             resultBuy = self.buy(token, amount)
 
+            if resultBuy is None:
+                return None
+
             assert len(resultBuy[0]) == 2
             assert resultBuy[0][0] == Web3.to_wei(amount, 'ether')
 
-            logging.info(f"SIMULATOR Buy result {resultBuy}")
+            logging.debug(f"SIMULATOR Buy result {resultBuy}")
 
             # sell
-            resultSell = self.sell(token, resultBuy[0][1])
+            resultSell = self.sell(token, Web3.from_wei(resultBuy[0][1], 'ether'))
+
+            if resultSell is None:
+                return None
 
             assert len(resultSell[0]) == 2
             assert resultSell[0][0] == resultBuy[0][1]
 
-            logging.info(f"SIMULATOR Sell result {resultSell}")
+            logging.debug(f"SIMULATOR Sell result {resultSell}")
 
             amount_out = Web3.from_wei(resultSell[0][1], 'ether')
             slippage = (Decimal(amount) - Decimal(amount_out))/Decimal(amount)*Decimal(10000)
@@ -90,15 +96,19 @@ class EthCallSimulator:
     
     def buy(self, token, amount, signer=None, bot=None) -> None:
         try:
+            signer = self.signer if signer is None else signer
+            bot = self.bot if bot is None else bot
+            token = Web3.to_checksum_address(token)
+
             state_diff = {
-                self.signer: {
+                signer: {
                     'balance': hex(10**18) # 1 ETH
                 }
             }
-            token = Web3.to_checksum_address(token)
+            
             result = self.w3.eth.call({
-                'from': self.signer if signer is None else signer,
-                'to': self.bot if bot is None else bot,
+                'from': signer,
+                'to': bot,
                 'value': Web3.to_wei(amount, 'ether'),
                 'data': bytes.fromhex(
                     func_selector('buy(address,uint256)') + encode_address(token) + encode_uint(int(time.time()) + 1000)
@@ -112,19 +122,23 @@ class EthCallSimulator:
 
     def sell(self, token, amount, signer=None, bot=None) -> None:
         try:
+            signer = self.signer if signer is None else signer
+            bot = self.bot if bot is None else bot
+
             balance_slot_index = self.determine_balance_slot_index(token)
             logging.debug(f"SIMULATOR Balance slot index {balance_slot_index}")
 
             if balance_slot_index is not None:
-                storage_index = calculate_balance_storage_index(self.bot, balance_slot_index)
+                storage_index = calculate_balance_storage_index(bot, balance_slot_index)
+                logging.debug(f"SIMULATOR Storage index {storage_index.hex()}")
 
                 result = self.w3.eth.call({
-                    'from': self.signer if signer is None else signer,
-                    'to': self.bot if bot is None else bot,
+                    'from': signer,
+                    'to': bot,
                     'data': bytes.fromhex(
-                        func_selector('sell(address,address,uint256)') + encode_address(token) + encode_address(self.signer) + encode_uint(int(time.time()) + 1000)
+                        func_selector('sell(address,address,uint256)') + encode_address(token) + encode_address(signer) + encode_uint(int(time.time()) + 1000)
                     )
-                }, 'latest', self.create_state_diff(token, storage_index, amount))
+                }, 'latest', self.create_state_diff(token, storage_index, Web3.to_wei(amount, 'ether')))
 
                 resultSell = eth_abi.decode(['uint[]'], result)
                 return resultSell
@@ -135,6 +149,7 @@ class EthCallSimulator:
     def determine_balance_slot_index(self, token):
         fake_amount = 10**27 # 1B
         fake_owner = self.signer
+
         for idx in [0,1]:
             storage_index = calculate_balance_storage_index(fake_owner, idx)
 
@@ -196,11 +211,11 @@ if __name__ == '__main__':
                     )
     
     result=simulator.inspect_pair(Pair(
-        address='0x4f73b3982def9b92d021defe97a6a8f03e3ae573',
-        token='0x26fd4c3600b12eae0b8caaaa74590e67222bf308',
-        token_index=0,
+        address='0xd774f798808d1b46fa984a019122820ec68e9186',
+        token='0xf3749fec35448f26890d2f9dfd3c1a62e8b62732',
+        token_index=1,
         reserve_token=0,
         reserve_eth=0
-    ), 0.1, swap=True)
+    ), 0.001, swap=True)
 
     logging.warning(f"Simulation result {result}")

@@ -83,11 +83,7 @@ class PairInspector(metaclass=Singleton):
         self.simulator = EthCallSimulator(
             http_url=http_url,
             signer=signer,
-            router_address=router,
-            weth=Web3.to_checksum_address(os.environ.get('WETH_ADDRESS')),
-            bot=Web3.to_checksum_address(os.environ.get('INSPECTOR_BOT')),
-            pair_abi=PAIR_ABI,
-            bot_abi=BOT_ABI,
+            bot=bot,
         )
 
     @timer_decorator
@@ -114,7 +110,7 @@ class PairInspector(metaclass=Singleton):
         txlist = self.get_txlist(pair.token, from_block, to_block)
         
         if int(txlist['status'])==constants.TX_SUCCESS_STATUS and len(txlist['result'])>0:
-            txs = [tx for tx in txlist['result'] if int(tx['txreceipt_status'])==constants.TX_SUCCESS_STATUS and tx['to'].lower()==pair.token.lower() and tx['methodId'] not in [constants.APPROVE_METHOD_ID]]
+            txs = [tx for tx in txlist['result'] if int(tx['txreceipt_status'])==constants.TX_SUCCESS_STATUS and tx['to'].lower()==pair.token.lower() and tx['from'].lower()==pair.creator.lower()]
             if len(txs)>0:
                 logging.warning(f"INSPECTOR Pair {pair.address} detected malicious due to abnormal incoming txs {txs}")
             return len(txs)
@@ -176,7 +172,7 @@ class PairInspector(metaclass=Singleton):
     
     @timer_decorator
     def inspect_pair(self, pair: Pair, block_number, is_initial=False) -> InspectionResult:
-        from_block=pair.last_inspected_block if pair.last_inspected_block>0 else block_number
+        from_block=pair.last_inspected_block+1 if pair.last_inspected_block>0 else block_number
 
         result = InspectionResult(
             pair=pair,
@@ -206,17 +202,7 @@ class PairInspector(metaclass=Singleton):
         
             result.number_tx_mm=self.number_tx_mm(pair,from_block,block_number)
 
-        simulator = RevmSimulator(
-            http_url=self.http_url,
-            signer=self.signer,
-            router_address=self.router,
-            weth=self.weth,
-            bot=self.bot,
-            pair_abi=self.pair_abi,
-            bot_abi=self.bot_abi,
-        )
-
-        simulation_result = simulator.inspect_pair(pair, SIMULATION_AMOUNT)
+        simulation_result = self.simulator.inspect_pair(pair, SIMULATION_AMOUNT)
         if simulation_result is not None:
             if simulation_result.slippage > SLIPPAGE_MIN_THRESHOLD and simulation_result.slippage < SLIPPAGE_MAX_THRESHOLD:
                 result.simulation_result=simulation_result
@@ -255,10 +241,8 @@ if __name__=="__main__":
         http_url=os.environ.get('HTTPS_URL'),
         api_keys=os.environ.get('BASESCAN_API_KEYS'),
         etherscan_api_url=os.environ.get('ETHERSCAN_API_URL'),
-        #signer=Web3.to_checksum_address(os.environ.get('MANAGER_ADDRESS')),
-        #bot=Web3.to_checksum_address(os.environ.get('INSPECTOR_BOT')),
-        signer='0xecb137C67c93eA50b8C259F8A8D08c0df18222d9',
-        bot='0x95f1062CCBF3A4909E1007457231130cdB4DB4c8',
+        signer=Web3.to_checksum_address(os.environ.get('MANAGER_ADDRESS')),
+        bot=Web3.to_checksum_address(os.environ.get('INSPECTOR_BOT')),
         router=Web3.to_checksum_address(os.environ.get('ROUTER_ADDRESS')),
         weth=Web3.to_checksum_address(os.environ.get('WETH_ADDRESS')),
         pair_abi=PAIR_ABI,
@@ -267,10 +251,10 @@ if __name__=="__main__":
     )
 
     pair = Pair(
-        address="0x4f73b3982def9b92d021defe97a6a8f03e3ae573",
-        token="0x26fd4c3600b12eae0b8caaaa74590e67222bf308",
-        token_index=0,
-        creator="0x4a6a268fbdbe38503500b23a2e6f0afa3e6f1218",
+        address="0xd774f798808d1b46fa984a019122820ec68e9186",
+        token="0xf3749fec35448f26890d2f9dfd3c1a62e8b62732",
+        token_index=1,
+        creator="0x69f59c7880b4dc93cd9ba3acaff3ee7045b82002",
         reserve_eth=10,
         reserve_token=0,
         created_at=0,
@@ -285,4 +269,4 @@ if __name__=="__main__":
     #print(f"number mm_tx {inspector.number_tx_mm(pair, 41665828, 41665884)}")
     #print(f"is malicious {inspector.is_malicious(pair, 41665828, is_initial=True)}")
 
-    inspector.inspect_batch([pair], 20637875, is_initial=True)
+    inspector.inspect_batch([pair], 20650337, is_initial=True)

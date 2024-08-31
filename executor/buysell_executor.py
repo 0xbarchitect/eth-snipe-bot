@@ -58,15 +58,11 @@ class BuySellExecutor(BaseExecutor):
             for acct in self.accounts:
                 self.bot_order_broker.put(BotCreationOrder(owner=acct.w3_account.address))
 
-        # papertrade
+        # paper-trade
         self.simulator = EthCallSimulator(
             http_url=http_url,
-            signer='0x',
-            router_address=router,
-            weth=weth,
-            bot='0x',
-            pair_abi=pair_abi,
-            bot_abi=bot_abi,
+            signer=Web3.to_checksum_address(os.environ.get('MANAGER_ADDRESS')),
+            bot=Web3.to_checksum_address(os.environ.get('INSPECTOR_BOT')),
         )
             
     @timer_decorator
@@ -196,6 +192,41 @@ class BuySellExecutor(BaseExecutor):
             result = self.simulator.sell(pair.token, amount_in, signer, bot.address)
             logging.info(f"EXECUTOR Paper:: Sell result {result}")
 
+        if result is not None:
+            ack = ExecutionAck(
+                lead_block=lead_block,
+                block_number=lead_block,
+                tx_hash='0x',
+                tx_status=TxStatus.SUCCESS,
+                pair=pair,
+                amount_in=amount_in,
+                amount_out=result[0][1],
+                is_buy=is_buy,
+                signer=signer,
+                bot=bot.address,
+                is_paper=True,
+            )
+
+            logging.info(f"EXECUTOR Acknowledgement {ack}")
+            self.report_sender.put(ack)
+        else:
+            ack = ExecutionAck(
+                lead_block=lead_block,
+                block_number=lead_block,
+                tx_hash='0x',
+                tx_status=TxStatus.FAILED,
+                pair=pair,
+                amount_in=amount_in,
+                amount_out=0,
+                is_buy=is_buy,
+                signer=signer,
+                bot=bot.address,
+                is_paper=True,
+            )
+
+            logging.info(f"EXECUTOR failed execution ack {ack}")
+            self.report_sender.put(ack)
+
     async def handle_bot_result(self):
         while True:
             result = await self.bot_result_broker.coro_get()
@@ -238,16 +269,15 @@ class BuySellExecutor(BaseExecutor):
                                                 deadline,
                                                 )
                         else:
-                            # future = executor.submit(self.execute,
-                            #                     idx,
-                            #                     execution_data.block_number,
-                            #                     execution_data.is_buy,
-                            #                     execution_data.pair,
-                            #                     execution_data.amount_in,
-                            #                     execution_data.amount_out_min, 
-                            #                     deadline,
-                            #                     )
-                            pass
+                            future = executor.submit(self.execute,
+                                                idx,
+                                                execution_data.block_number,
+                                                execution_data.is_buy,
+                                                execution_data.pair,
+                                                execution_data.amount_in,
+                                                execution_data.amount_out_min, 
+                                                deadline,
+                                                )
                     else:
                         logging.warning(f"EXECUTOR order dropped due to account #{idx} {self.accounts[idx].w3_account.address} has no bot")
                 else:
@@ -269,17 +299,16 @@ class BuySellExecutor(BaseExecutor):
                                 execution_data.bot,
                             )
                         else:
-                            # future = executor.submit(self.execute,
-                            #     idx,
-                            #     execution_data.block_number,
-                            #     execution_data.is_buy,
-                            #     execution_data.pair,
-                            #     execution_data.amount_in,
-                            #     execution_data.amount_out_min, 
-                            #     deadline,
-                            #     execution_data.bot,
-                            # )
-                            pass
+                            future = executor.submit(self.execute,
+                                idx,
+                                execution_data.block_number,
+                                execution_data.is_buy,
+                                execution_data.pair,
+                                execution_data.amount_in,
+                                execution_data.amount_out_min, 
+                                deadline,
+                                execution_data.bot,
+                            )
                     else:
                         logging.error(f"EXECUTOR not found signer for order {execution_data}")
             else:
@@ -335,41 +364,35 @@ if __name__ == "__main__":
         await asyncio.sleep(1) # waiting for bot is fully initialized
 
         pair=Pair(
-            address='0x86dd89411567cca731d24ADfFa3C6055d38fB056',
-            token='0x315C6F6a81BFD15a207d69E0DD9003463344cC9F',
+            address='0xd961671733efbb8f65312B756CC6e3cDa3877410',
+            token='0x18d098dd0780ec54f154173c2768e1b0b140c631',
             token_index=0,
-        ),
+        )
         # BUY
-        # order_receiver.put(ExecutionOrder(
-        #     block_number=0, 
-        #     block_timestamp=0, 
-        #     pair=pair,
-        #     signer='0xecb137C67c93eA50b8C259F8A8D08c0df18222d9',
-        #     bot='0xadfd91a139c36715d09bf97943e6ac8d48f00f4b',
-        #     amount_in=0.001667,
-        #     amount_out_min=0,
-        #     is_buy=True,
-        #     is_paper=True,
-        # ))
-        
-        # SELL
         order_receiver.put(ExecutionOrder(
-            block_number=0,
-            block_timestamp=0,
+            block_number=0, 
+            block_timestamp=0, 
             pair=pair,
             signer='0xecb137C67c93eA50b8C259F8A8D08c0df18222d9',
             bot='0xadfd91a139c36715d09bf97943e6ac8d48f00f4b',
-            amount_in=0,
+            amount_in=0.001667,
             amount_out_min=0,
-            is_buy=False,
+            is_buy=True,
             is_paper=True,
-            position=Position(
-                pair=pair,
-                amount=0.26999,
-                buy_price=0,
-                start_time=0,
-            ),
         ))
+        
+        # SELL
+        # order_receiver.put(ExecutionOrder(
+        #     block_number=0,
+        #     block_timestamp=0,
+        #     pair=pair,
+        #     signer='0xecb137C67c93eA50b8C259F8A8D08c0df18222d9',
+        #     bot='0xadfd91a139c36715d09bf97943e6ac8d48f00f4b',
+        #     amount_in=6842714.885,
+        #     amount_out_min=0,
+        #     is_buy=False,
+        #     is_paper=True,
+        # ))
 
     async def main_loop():
         await asyncio.gather(executor.run(), simulate_order())
