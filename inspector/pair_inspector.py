@@ -203,7 +203,6 @@ class PairInspector(metaclass=Singleton):
             weth=self.weth,
             bot=self.bot,
             pair_abi=self.pair_abi,
-            weth_abi=self.weth_abi,
             bot_abi=self.bot_abi,
         )
 

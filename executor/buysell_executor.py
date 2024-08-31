@@ -15,8 +15,9 @@ sys.path.append('..')
 
 from helpers import timer_decorator, load_abi, constants
 from executor import BaseExecutor
-from data import ExecutionOrder, Pair, ExecutionAck, TxStatus, BotCreationOrder, Bot, BotUpdateOrder
+from data import ExecutionOrder, Pair, ExecutionAck, TxStatus, BotCreationOrder, Bot, BotUpdateOrder, Position
 from factory import BotFactory
+from inspector import EthCallSimulator
 
 glb_lock = threading.Lock()
 BOT_MAX_NUMBER_USED=int(os.environ.get('BOT_MAX_NUMBER_USED'))
@@ -28,6 +29,7 @@ class BuySellExecutor(BaseExecutor):
                 weth, router, router_abi, erc20_abi, pair_abi, bot, bot_abi, \
                 manager_key, bot_factory, bot_factory_abi, bot_implementation, pair_factory, bot_db=True) -> None:
         super().__init__(http_url, treasury_key, executor_keys, order_receiver, report_sender, gas_limit, max_fee_per_gas, max_priority_fee_per_gas, deadline_delay)
+        
         self.weth = weth
         self.router = self.w3.eth.contract(address=router, abi=router_abi)
         self.erc20_abi = erc20_abi
@@ -55,8 +57,18 @@ class BuySellExecutor(BaseExecutor):
     
             for acct in self.accounts:
                 self.bot_order_broker.put(BotCreationOrder(owner=acct.w3_account.address))
-            
 
+        # papertrade
+        self.simulator = EthCallSimulator(
+            http_url=http_url,
+            signer='0x',
+            router_address=router,
+            weth=weth,
+            bot='0x',
+            pair_abi=pair_abi,
+            bot_abi=bot_abi,
+        )
+            
     @timer_decorator
     def execute(self, idx, lead_block, is_buy, pair, amount_in, amount_out_min, deadline, bot=None):
         def prepare_tx_bot(signer, bot, nonce):
@@ -169,6 +181,21 @@ class BuySellExecutor(BaseExecutor):
                     self.accounts[idx].bot = None
                     self.bot_factory.order_broker.put(BotCreationOrder(self.accounts[idx].w3_account.address))
 
+    @timer_decorator
+    def execute_paper(self, idx, lead_block, is_buy, pair, amount_in, amount_out_min, deadline, bot=None):
+        signer = self.accounts[idx].w3_account.address
+        if bot is None:
+            bot = self.w3.eth.contract(address=Web3.to_checksum_address(self.accounts[idx].bot.address),abi=self.bot_abi)
+        else:
+            bot = self.w3.eth.contract(address=Web3.to_checksum_address(bot),abi=self.bot_abi)
+
+        if is_buy:
+            result = self.simulator.buy(pair.token, amount_in, signer, bot.address)
+            logging.info(f"EXECUTOR Paper:: Buy result {result}")
+        else:
+            result = self.simulator.sell(pair.token, amount_in, signer, bot.address)
+            logging.info(f"EXECUTOR Paper:: Sell result {result}")
+
     async def handle_bot_result(self):
         while True:
             result = await self.bot_result_broker.coro_get()
@@ -200,7 +227,8 @@ class BuySellExecutor(BaseExecutor):
                     idx = (counter - 1) % len(self.accounts)
 
                     if self.accounts[idx].bot is not None:
-                        future = executor.submit(self.execute,
+                        if execution_data.is_paper:
+                            future = executor.submit(self.execute_paper,
                                                 idx,
                                                 execution_data.block_number,
                                                 execution_data.is_buy,
@@ -209,6 +237,17 @@ class BuySellExecutor(BaseExecutor):
                                                 execution_data.amount_out_min, 
                                                 deadline,
                                                 )
+                        else:
+                            # future = executor.submit(self.execute,
+                            #                     idx,
+                            #                     execution_data.block_number,
+                            #                     execution_data.is_buy,
+                            #                     execution_data.pair,
+                            #                     execution_data.amount_in,
+                            #                     execution_data.amount_out_min, 
+                            #                     deadline,
+                            #                     )
+                            pass
                     else:
                         logging.warning(f"EXECUTOR order dropped due to account #{idx} {self.accounts[idx].w3_account.address} has no bot")
                 else:
@@ -218,16 +257,29 @@ class BuySellExecutor(BaseExecutor):
                             id = idx
                             break
                     if idx is not None:
-                        future = executor.submit(self.execute,
-                            idx,
-                            execution_data.block_number,
-                            execution_data.is_buy,
-                            execution_data.pair,
-                            execution_data.amount_in,
-                            execution_data.amount_out_min, 
-                            deadline,
-                            execution_data.bot,
-                        )
+                        if execution_data.is_paper:
+                            future = executor.submit(self.execute_paper,
+                                idx,
+                                execution_data.block_number,
+                                execution_data.is_buy,
+                                execution_data.pair,
+                                execution_data.amount_in,
+                                execution_data.amount_out_min, 
+                                deadline,
+                                execution_data.bot,
+                            )
+                        else:
+                            # future = executor.submit(self.execute,
+                            #     idx,
+                            #     execution_data.block_number,
+                            #     execution_data.is_buy,
+                            #     execution_data.pair,
+                            #     execution_data.amount_in,
+                            #     execution_data.amount_out_min, 
+                            #     deadline,
+                            #     execution_data.bot,
+                            # )
+                            pass
                     else:
                         logging.error(f"EXECUTOR not found signer for order {execution_data}")
             else:
@@ -282,36 +334,42 @@ if __name__ == "__main__":
     async def simulate_order():
         await asyncio.sleep(1) # waiting for bot is fully initialized
 
+        pair=Pair(
+            address='0x86dd89411567cca731d24ADfFa3C6055d38fB056',
+            token='0x315C6F6a81BFD15a207d69E0DD9003463344cC9F',
+            token_index=0,
+        ),
         # BUY
         # order_receiver.put(ExecutionOrder(
         #     block_number=0, 
         #     block_timestamp=0, 
-        #     pair=Pair(
-        #         address='0x5541a192d8972765e364127378ec75c39a70bae6',
-        #         token='0xef9d8c57f6625b6be730ded5f8e6213cc646460d',
-        #         token_index=1,
-        #     ),
+        #     pair=pair,
         #     signer='0xecb137C67c93eA50b8C259F8A8D08c0df18222d9',
         #     bot='0xadfd91a139c36715d09bf97943e6ac8d48f00f4b',
-        #     amount_in=0.000667,
+        #     amount_in=0.001667,
         #     amount_out_min=0,
-        #     is_buy=True))
+        #     is_buy=True,
+        #     is_paper=True,
+        # ))
         
         # SELL
         order_receiver.put(ExecutionOrder(
             block_number=0,
             block_timestamp=0,
-            pair=Pair(
-                address='0x5541a192d8972765e364127378ec75c39a70bae6',
-                token='0xef9d8c57f6625b6be730ded5f8e6213cc646460d',
-                token_index=1,
-            ),
+            pair=pair,
             signer='0xecb137C67c93eA50b8C259F8A8D08c0df18222d9',
             bot='0xadfd91a139c36715d09bf97943e6ac8d48f00f4b',
             amount_in=0,
             amount_out_min=0,
             is_buy=False,
-            ))
+            is_paper=True,
+            position=Position(
+                pair=pair,
+                amount=0.26999,
+                buy_price=0,
+                start_time=0,
+            ),
+        ))
 
     async def main_loop():
         await asyncio.gather(executor.run(), simulate_order())

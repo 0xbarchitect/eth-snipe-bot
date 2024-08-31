@@ -22,6 +22,7 @@ MINIMUM_AVAX_BALANCE = 0.01
 
 class BaseExecutor(metaclass=Singleton):
     def __init__(self, http_url, treasury_key, executor_keys, order_receiver, report_sender, gas_limit, max_fee_per_gas, max_priority_fee_per_gas, deadline_delay) -> None:
+        self.http_url = http_url
         self.w3 = Web3(Web3.HTTPProvider(http_url))
         if self.w3.is_connected() == True:
             logging.info(f"web3 provider {http_url} connected")

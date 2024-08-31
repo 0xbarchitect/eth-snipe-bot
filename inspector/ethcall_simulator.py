@@ -29,7 +29,6 @@ class EthCallSimulator:
                  weth,
                  bot,
                  pair_abi,
-                 weth_abi,
                  bot_abi,
                  ):
         logging.debug(f"start simulation...")
@@ -42,49 +41,18 @@ class EthCallSimulator:
 
         self.w3 = Web3(Web3.HTTPProvider(http_url))
         self.pair_abi = pair_abi
-        self.weth_contract = self.w3.eth.contract(address=weth, abi=weth_abi)
-        self.bot = self.w3.eth.contract(address=bot, abi=bot_abi)
+        #self.bot = self.w3.eth.contract(address=bot, abi=bot_abi)
+        self.bot = bot
 
     @timer_decorator
     def inspect_token_by_transfer(self, token, amount):
         try:
             balance_index = calculate_balance_storage_index(self.signer,0)
-            allowance_index = calculate_allowance_storage_index(self.signer, self.bot.address,1)
-            
-            # result = self.w3.eth.call({
-            #     'from': self.signer,
-            #     'to': token,
-            #     'data': bytes.fromhex(
-            #         func_selector('transfer(address,uint256)') + encode_address(self.bot.address) + encode_uint(amount)
-            #     )
-            # }, 'latest', {
-            #     token: {
-            #         'stateDiff': {
-            #             balance_index.hex(): hex(amount),
-            #         }
-            #     }
-            # })
-            # logging.info(f"transfer result {Web3.to_int(result)}")
-
-            # result = self.w3.eth.call({
-            #     'from': self.signer,
-            #     'to': token,
-            #     'data': bytes.fromhex(
-            #         func_selector('allowance(address,address)') + encode_address(self.signer) + encode_address(self.bot.address)
-            #     )
-            # }, 'latest', {
-            #     token: {
-            #         'stateDiff': {
-            #             balance_index.hex(): hex(amount),
-            #             allowance_index.hex(): hex(amount),
-            #         }
-            #     }
-            # })
-            # logging.info(f"allowance result {Web3.to_int(result)}")
+            allowance_index = calculate_allowance_storage_index(self.signer, self.bot,1)
 
             result = self.w3.eth.call({
                 'from': self.signer,
-                'to': self.bot.address,
+                'to': self.bot,
                 'data': bytes.fromhex(
                     func_selector('inspect_transfer(address,uint256)') + encode_address(token) + encode_uint(Web3.to_wei(amount, 'ether'))
                 )
@@ -108,52 +76,23 @@ class EthCallSimulator:
             return None
         
     @timer_decorator
-    def inspect_token_by_swap(self, token, amount):
+    def inspect_token_by_swap(self, token, amount) -> None:
         try:
             # buy
-            result = self.w3.eth.call({
-                'from': self.signer,
-                'to': self.bot.address,
-                'value': Web3.to_wei(amount, 'ether'),
-                'data': bytes.fromhex(
-                    func_selector('buy(address,uint256)') + encode_address(token) + encode_uint(int(time.time()) + 1000)
-                )
-            }, 'latest', {
-                self.signer: {
-                    'balance': hex(10**18)
-                }
-            })
-
-            resultBuy = eth_abi.decode(['uint[]'], result)
+            resultBuy = self.buy(token, amount)
 
             assert len(resultBuy[0]) == 2
             assert resultBuy[0][0] == Web3.to_wei(amount, 'ether')
 
-            logging.info(f"SIMULATOR buy result {resultBuy}")
+            logging.info(f"SIMULATOR Buy result {resultBuy}")
 
             # sell
-            storage_index = calculate_balance_storage_index(self.bot.address, 0)
-
-            result = self.w3.eth.call({
-                'from': self.signer,
-                'to': self.bot.address,
-                'data': bytes.fromhex(
-                    func_selector('sell(address,address,uint256)') + encode_address(token) + encode_address(self.signer) + encode_uint(int(time.time()) + 1000)
-                )
-            }, 'latest', {
-                token: {
-                    'stateDiff': {
-                        storage_index.hex(): hex(resultBuy[0][1]),
-                    }
-                }
-            })
-
-            resultSell = eth_abi.decode(['uint[]'], result)
+            resultSell = self.sell(token, resultBuy[0][1])
 
             assert len(resultSell[0]) == 2
             assert resultSell[0][0] == resultBuy[0][1]
 
-            logging.info(f"SIMULATOR sell result {resultSell}")
+            logging.info(f"SIMULATOR Sell result {resultSell}")
 
             amount_out = Web3.from_wei(resultSell[0][1], 'ether')
             slippage = (Decimal(amount) - Decimal(amount_out))/Decimal(amount)*Decimal(10000)
@@ -162,7 +101,82 @@ class EthCallSimulator:
             return (amount, amount_out, slippage, amount_token)
         except Exception as e:
             logging.error(f"SIMULATOR inspect {token} failed with error {e}")
-            return None
+        
+        return None
+    
+    def buy(self, token, amount, signer=None, bot=None) -> None:
+        try:
+            state_diff = {
+                self.signer: {
+                    'balance': hex(10**18) # 1 ETH
+                }
+            }
+            token = Web3.to_checksum_address(token)
+            result = self.w3.eth.call({
+                'from': self.signer if signer is None else signer,
+                'to': self.bot if bot is None else bot,
+                'value': Web3.to_wei(amount, 'ether'),
+                'data': bytes.fromhex(
+                    func_selector('buy(address,uint256)') + encode_address(token) + encode_uint(int(time.time()) + 1000)
+                )
+            }, 'latest', state_diff)
+
+            resultBuy = eth_abi.decode(['uint[]'], result)
+            return resultBuy
+        except Exception as e:
+            logging.error(f"SIMULATOR Buy error {e}")
+
+    def sell(self, token, amount, signer=None, bot=None) -> None:
+        try:
+            balance_slot_index = self.determine_balance_slot_index(token)
+            logging.debug(f"SIMULATOR Balance slot index {balance_slot_index}")
+
+            if balance_slot_index is not None:
+                storage_index = calculate_balance_storage_index(self.bot, balance_slot_index)
+
+                result = self.w3.eth.call({
+                    'from': self.signer if signer is None else signer,
+                    'to': self.bot if bot is None else bot,
+                    'data': bytes.fromhex(
+                        func_selector('sell(address,address,uint256)') + encode_address(token) + encode_address(self.signer) + encode_uint(int(time.time()) + 1000)
+                    )
+                }, 'latest', self.create_state_diff(token, storage_index, amount))
+
+                resultSell = eth_abi.decode(['uint[]'], result)
+                return resultSell
+        except Exception as e:
+            logging.error(f"SIMULATOR Sell error {e}")
+
+        
+    def determine_balance_slot_index(self, token):
+        fake_amount = 10**27 # 1B
+        fake_owner = self.signer
+        for idx in [0,1]:
+            storage_index = calculate_balance_storage_index(fake_owner, idx)
+
+            result = self.w3.eth.call({
+                'from': self.signer,
+                'to': Web3.to_checksum_address(token),
+                'data': bytes.fromhex(
+                    func_selector('balanceOf(address)') + encode_address(fake_owner)
+                )
+            }, 'latest', self.create_state_diff(token, storage_index, fake_amount))
+            logging.debug(f"index {idx} get balance result fake {eth_abi.decode(['uint256'], result)}")
+
+            decoded = eth_abi.decode(['uint256'], result)
+            if decoded[0] == fake_amount:
+                return idx
+
+        return None
+
+    def create_state_diff(self, token, storage_index, amount):
+        return {
+                Web3.to_checksum_address(token): {
+                    'stateDiff': {
+                        storage_index.hex(): '0x'+hex(amount)[2:].zfill(64),
+                    }
+                }
+            }
         
     def inspect_pair(self, pair: Pair, amount, swap=True) -> None:
         if swap is False:
@@ -185,7 +199,6 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
 
     PAIR_ABI = load_abi(f"{os.path.dirname(__file__)}/../contracts/abis/UniV2Pair.abi.json")
-    WETH_ABI = load_abi(f"{os.path.dirname(__file__)}/../contracts/abis/WETH.abi.json")
     BOT_ABI = load_abi(f"{os.path.dirname(__file__)}/../contracts/abis/SnipeBot.abi.json")
 
     ETH_BALANCE = 1000
@@ -199,7 +212,6 @@ if __name__ == '__main__':
                     weth=Web3.to_checksum_address(os.environ.get('WETH_ADDRESS')),
                     bot=Web3.to_checksum_address(os.environ.get('INSPECTOR_BOT')),
                     pair_abi=PAIR_ABI,
-                    weth_abi=WETH_ABI,
                     bot_abi=BOT_ABI,
                     )
     
@@ -211,4 +223,4 @@ if __name__ == '__main__':
         reserve_eth=0
     ), 0.1, swap=True)
 
-    logging.info(f"Simulation result {result}")
+    logging.warning(f"Simulation result {result}")

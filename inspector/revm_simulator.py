@@ -31,7 +31,6 @@ class RevmSimulator:
                  weth,
                  bot,
                  pair_abi,
-                 weth_abi,
                  bot_abi,
                  ):
         logging.debug(f"start simulation...")
@@ -46,7 +45,6 @@ class RevmSimulator:
 
         self.w3 = Web3(Web3.HTTPProvider(http_url))
         self.pair_abi = pair_abi
-        self.weth_contract = self.w3.eth.contract(address=weth, abi=weth_abi)
         self.bot = self.w3.eth.contract(address=bot, abi=bot_abi)
         
     @timer_decorator
@@ -58,40 +56,14 @@ class RevmSimulator:
             logging.debug(f"Balance after {Web3.from_wei(self.evm.get_balance(self.signer), 'ether')}")
 
             # buy
-            result = self.evm.message_call(
-                caller=self.signer,
-                to=self.bot.address,
-                value=Web3.to_wei(amount, 'ether'),
-                calldata=bytes.fromhex(
-                    func_selector('buy(address,uint256)') + encode_address(token) + encode_uint(int(time.time()) + 1000)
-                )
-            )
-
-            logging.debug(f"REVMCall result {Web3.to_hex(result)}")
-            resultBuy = eth_abi.decode(['uint[]'], result)
-
-            assert len(resultBuy[0]) == 2
-            assert resultBuy[0][0] == Web3.to_wei(amount, 'ether')
-
-            logging.debug(f"SIMULATOR buy result {resultBuy}")
+            resultBuy = self.buy(token, amount)
+            logging.info(f"SIMULATOR buy result {resultBuy}")
 
             # sell
-            result = self.evm.message_call(
-                caller=self.signer,
-                to=self.bot.address,
-                calldata=bytes.fromhex(
-                    func_selector('sell(address,address,uint256)') + encode_address(token) + encode_address(self.signer) + encode_uint(int(time.time()) + 1000)
-                )
-            )
+            resultSell = self.sell(token)
+            logging.info(f"SIMULATOR sell result {resultSell}")
 
-            logging.debug(f"REVMCall result {Web3.to_hex(result)}")
-
-            resultSell = eth_abi.decode(['uint[]'], result)
-
-            assert len(resultSell[0]) == 2
             assert resultSell[0][0] == resultBuy[0][1]
-
-            logging.debug(f"SIMULATOR sell result {resultSell}")
 
             amount_out = Web3.from_wei(resultSell[0][1], 'ether')
             slippage = (Decimal(amount) - Decimal(amount_out))/Decimal(amount)*Decimal(10000)
@@ -101,6 +73,43 @@ class RevmSimulator:
         except Exception as e:
             logging.error(f"SIMULATOR inspect {token} failed with error {e}")
             return None
+        
+    def buy(self, token, amount):
+        result = self.evm.message_call(
+            caller=self.signer,
+            to=self.bot.address,
+            value=Web3.to_wei(amount, 'ether'),
+            calldata=bytes.fromhex(
+                func_selector('buy(address,uint256)') + encode_address(token) + encode_uint(int(time.time()) + 1000)
+            )
+        )
+
+        logging.debug(f"REVMCall result {Web3.to_hex(result)}")
+        resultBuy = eth_abi.decode(['uint[]'], result)
+
+        assert len(resultBuy[0]) == 2
+        assert resultBuy[0][0] == Web3.to_wei(amount, 'ether')
+
+        return resultBuy
+    
+    def sell(self, token):
+        result = self.evm.message_call(
+            caller=self.signer,
+            to=self.bot.address,
+            calldata=bytes.fromhex(
+                func_selector('sell(address,address,uint256)') + encode_address(token) + encode_address(self.signer) + encode_uint(int(time.time()) + 1000)
+            )
+        )
+
+        logging.debug(f"REVMCall result {Web3.to_hex(result)}")
+
+        resultSell = eth_abi.decode(['uint[]'], result)
+
+        assert len(resultSell[0]) == 2
+
+        #assert resultSell[0][0] == resultBuy[0][1]
+
+        return resultSell
         
     def inspect_pair(self, pair: Pair, amount) -> None:
         result = self.inspect_token_by_swap(pair.token, amount)
@@ -117,10 +126,9 @@ class RevmSimulator:
 if __name__ == '__main__':
     from dotenv import load_dotenv
     load_dotenv()
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
 
     PAIR_ABI = load_abi(f"{os.path.dirname(__file__)}/../contracts/abis/UniV2Pair.abi.json")
-    WETH_ABI = load_abi(f"{os.path.dirname(__file__)}/../contracts/abis/WETH.abi.json")
     BOT_ABI = load_abi(f"{os.path.dirname(__file__)}/../contracts/abis/SnipeBot.abi.json")
 
     ETH_BALANCE = 1000
@@ -134,7 +142,6 @@ if __name__ == '__main__':
                     weth=Web3.to_checksum_address(os.environ.get('WETH_ADDRESS')),
                     bot=Web3.to_checksum_address(os.environ.get('INSPECTOR_BOT')),
                     pair_abi=PAIR_ABI,
-                    weth_abi=WETH_ABI,
                     bot_abi=BOT_ABI,
                 )
     

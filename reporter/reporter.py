@@ -171,9 +171,9 @@ class Reporter(metaclass=Singleton):
                     investment=Decimal(execution_ack.amount_in),
                 )
                 await position.asave()
-                logging.info(f"REPORTER Create new Position #{position.id}")
+                logging.warning(f"REPORTER Create new Position #{position.id}")
             else:
-                logging.info(f"REPORTER Update existing Position #{position.id}")
+                logging.warning(f"REPORTER Update existing Position #{position.id}")
 
                 if not execution_ack.is_buy and position.is_liquidated != 1:
                     position.is_liquidated=1
@@ -210,9 +210,9 @@ class Reporter(metaclass=Singleton):
                         frozen_at=make_aware(datetime.now()),
                         )
                     await blacklist.asave()
-                    logging.info(f"REPORTER create blacklist id #{blacklist.id} with address {addr} at {datetime.now()}")
+                    logging.warning(f"REPORTER create blacklist id #{blacklist.id} with address {addr} at {datetime.now()}")
                 else:
-                    logging.info(f"REPORTER blacklist {addr} exists, update frozen time {datetime.now()}")
+                    logging.warning(f"REPORTER blacklist {addr} exists, update frozen time {datetime.now()}")
                     blacklist.frozen_at=make_aware(datetime.now())
                     await blacklist.asave()
 
