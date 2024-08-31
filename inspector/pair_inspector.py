@@ -22,7 +22,7 @@ from helpers.utils import load_contract_bin, encode_address, encode_uint, func_s
                             calculate_allowance_storage_index
 from helpers import constants
 from data import Pair, MaliciousPair, InspectionResult, SimulationResult
-from inspector import RevmSimulator
+from inspector import RevmSimulator, EthCallSimulator
 
 # django
 import django
@@ -79,6 +79,16 @@ class PairInspector(metaclass=Singleton):
         self.weth_abi = weth_abi
         self.bot_abi = bot_abi
         self.counter = 0
+
+        self.simulator = EthCallSimulator(
+            http_url=http_url,
+            signer=signer,
+            router_address=router,
+            weth=Web3.to_checksum_address(os.environ.get('WETH_ADDRESS')),
+            bot=Web3.to_checksum_address(os.environ.get('INSPECTOR_BOT')),
+            pair_abi=PAIR_ABI,
+            bot_abi=BOT_ABI,
+        )
 
     @timer_decorator
     def is_contract_verified(self, pair: Pair) -> False:

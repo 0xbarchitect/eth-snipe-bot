@@ -5,7 +5,6 @@ import time
 from decimal import Decimal
 
 from web3 import Web3
-from uniswap_universal_router_decoder import FunctionRecipient, RouterCodec
 import eth_abi
 
 import sys # for testing
@@ -22,26 +21,11 @@ from data import SimulationResult, Pair
 
 class EthCallSimulator:
     @timer_decorator
-    def __init__(self, 
-                 http_url, 
-                 signer, 
-                 router_address, 
-                 weth,
-                 bot,
-                 pair_abi,
-                 bot_abi,
-                 ):
+    def __init__(self, http_url, signer, bot):
         logging.debug(f"start simulation...")
 
-        self.http_url = http_url
-        self.signer = signer
-
-        self.router_address = router_address
-        self.weth = weth
-
         self.w3 = Web3(Web3.HTTPProvider(http_url))
-        self.pair_abi = pair_abi
-        #self.bot = self.w3.eth.contract(address=bot, abi=bot_abi)
+        self.signer = signer
         self.bot = bot
 
     @timer_decorator
@@ -208,11 +192,7 @@ if __name__ == '__main__':
     simulator = EthCallSimulator(
                     http_url=os.environ.get('HTTPS_URL'),
                     signer=Web3.to_checksum_address(os.environ.get('MANAGER_ADDRESS')),
-                    router_address=Web3.to_checksum_address(os.environ.get('ROUTER_ADDRESS')),
-                    weth=Web3.to_checksum_address(os.environ.get('WETH_ADDRESS')),
                     bot=Web3.to_checksum_address(os.environ.get('INSPECTOR_BOT')),
-                    pair_abi=PAIR_ABI,
-                    bot_abi=BOT_ABI,
                     )
     
     result=simulator.inspect_pair(Pair(
