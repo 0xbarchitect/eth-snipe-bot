@@ -283,35 +283,35 @@ if __name__ == "__main__":
         await asyncio.sleep(1) # waiting for bot is fully initialized
 
         # BUY
+        # order_receiver.put(ExecutionOrder(
+        #     block_number=0, 
+        #     block_timestamp=0, 
+        #     pair=Pair(
+        #         address='0x5541a192d8972765e364127378ec75c39a70bae6',
+        #         token='0xef9d8c57f6625b6be730ded5f8e6213cc646460d',
+        #         token_index=1,
+        #     ),
+        #     signer='0xecb137C67c93eA50b8C259F8A8D08c0df18222d9',
+        #     bot='0xadfd91a139c36715d09bf97943e6ac8d48f00f4b',
+        #     amount_in=0.000667,
+        #     amount_out_min=0,
+        #     is_buy=True))
+        
+        # SELL
         order_receiver.put(ExecutionOrder(
-            block_number=0, 
-            block_timestamp=0, 
+            block_number=0,
+            block_timestamp=0,
             pair=Pair(
-                address='0x0bCF9064a4363ac60350042c8390aeb034d2B6d6',
-                token='0xd67ac67ff99153a76ec881bfd8be006789e32b4e',
+                address='0x5541a192d8972765e364127378ec75c39a70bae6',
+                token='0xef9d8c57f6625b6be730ded5f8e6213cc646460d',
                 token_index=1,
             ),
             signer='0xecb137C67c93eA50b8C259F8A8D08c0df18222d9',
-            bot='0x95f1062CCBF3A4909E1007457231130cdB4DB4c8',
-            amount_in=0.001,
+            bot='0xadfd91a139c36715d09bf97943e6ac8d48f00f4b',
+            amount_in=0,
             amount_out_min=0,
-            is_buy=True))
-        
-        # SELL
-        # order_receiver.put(ExecutionOrder(
-        #     block_number=0,
-        #     block_timestamp=0,
-        #     pair=Pair(
-        #         address='0x1928d48674412734f9dc2d6d1d0e0f3bbb6c1092',
-        #         token='0x4d20617631d5d778918efb34ff7518df40b36a18',
-        #         token_index=0,
-        #     ),
-        #     signer='0xecb137C67c93eA50b8C259F8A8D08c0df18222d9',
-        #     bot='0x95f1062CCBF3A4909E1007457231130cdB4DB4c8',
-        #     amount_in=0,
-        #     amount_out_min=0,
-        #     is_buy=False,
-        #     ))
+            is_buy=False,
+            ))
 
     async def main_loop():
         await asyncio.gather(executor.run(), simulate_order())
