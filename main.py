@@ -15,7 +15,8 @@ from typing import List
 
 from dotenv import load_dotenv
 load_dotenv()
-logging.basicConfig(level=logging.INFO)
+#logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=int(os.environ.get('LOG_LEVEL')))
 
 from watcher import BlockWatcher
 from inspector import PairInspector
@@ -344,7 +345,7 @@ async def main():
 
         while True:
             report = await execution_report.coro_get()
-            logging.info(f"MAIN receive execution report {report}")
+            logging.warning(f"MAIN receive execution report {report}")
 
             if report is not None and isinstance(report, ExecutionAck):
                 # send execution report
