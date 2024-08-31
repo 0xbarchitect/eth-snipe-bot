@@ -84,6 +84,7 @@ class Position(models.Model):
     bot = models.CharField(max_length=42, null=True)
     investment = models.FloatField(null=True)
     returns = models.FloatField(null=True)
+    is_paper = models.BooleanField(null=True, default=False)
 
     created_at = models.DateTimeField(null=True,auto_now_add=True)
     updated_at = models.DateTimeField(null=True,auto_now=True)

@@ -70,7 +70,7 @@ class PositionAdmin(FullPermissionModelAdmin):
 
     list_filter = ['is_deleted']
     list_display = ('id', 'pair', 'bot', 'amount', 'purchased_at', 'is_liquidated', 'liquidated_at', 'investment_h', 'returns_h', 'pnl_h', 'buttons')
-    fields = ('pair', 'signer', 'bot', 'amount', 'buy_price', 'purchased_at', 'is_liquidated', 'sell_price', 'liquidated_at', 'liquidation_attempts', 'investment', 'returns', 'pnl',)
+    fields = ('pair', 'signer', 'bot', 'amount', 'buy_price', 'purchased_at', 'is_liquidated', 'sell_price', 'liquidated_at', 'liquidation_attempts', 'investment', 'returns', 'pnl', 'is_paper',)
     readonly_fields = ('pair', 'signer', 'bot', 'amount', 'buy_price', 'purchased_at', 'is_liquidated', 'sell_price', 'liquidated_at', 'liquidation_attempts', 'investment', 'returns', 'pnl',)
     
     @admin.display(description='Actions')
