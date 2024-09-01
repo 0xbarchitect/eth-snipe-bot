@@ -36,9 +36,9 @@ PAGE_SIZE=100
 MM_TX_AMOUNT_THRESHOLD=0.01
 CREATOR_TX_HISTORY_PAGE_SIZE=500
 
-SIMULATION_AMOUNT=0.01
+SIMULATION_AMOUNT=0.003
 SLIPPAGE_MIN_THRESHOLD = 30 # in basis points
-SLIPPAGE_MAX_THRESHOLD = 100 # in basis points
+SLIPPAGE_MAX_THRESHOLD = 200 # in basis points
 
 RESERVE_ETH_MIN_THRESHOLD=float(os.environ.get('RESERVE_ETH_MIN_THRESHOLD'))
 RESERVE_ETH_MAX_THRESHOLD=float(os.environ.get('RESERVE_ETH_MAX_THRESHOLD'))
@@ -251,11 +251,11 @@ if __name__=="__main__":
     )
 
     pair = Pair(
-        address="0xd774f798808d1b46fa984a019122820ec68e9186",
-        token="0xf3749fec35448f26890d2f9dfd3c1a62e8b62732",
+        address="0x69c3e12902b2d63361d21d8c6e6e2d33fcb92614",
+        token="0xc51a596039f8aa333e6b618825d29b8f2c210f95",
         token_index=1,
-        creator="0x69f59c7880b4dc93cd9ba3acaff3ee7045b82002",
-        reserve_eth=10,
+        creator="0xed88e6fe659837e9bfcd0a4cbb182fa49c75f56e",
+        reserve_eth=1,
         reserve_token=0,
         created_at=0,
         inspect_attempts=1,
@@ -269,4 +269,4 @@ if __name__=="__main__":
     #print(f"number mm_tx {inspector.number_tx_mm(pair, 41665828, 41665884)}")
     #print(f"is malicious {inspector.is_malicious(pair, 41665828, is_initial=True)}")
 
-    inspector.inspect_batch([pair], 20650337, is_initial=True)
+    inspector.inspect_batch([pair], 20654295, is_initial=True)
