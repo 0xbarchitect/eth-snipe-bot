@@ -369,6 +369,7 @@ async def main():
                                 start_time=int(time()),
                                 signer=report.signer,
                                 bot=report.bot,
+                                is_paper=report.is_paper,
                             ))
                             logging.info(f"MAIN append {report.pair.address} to inventory")
                     else:
