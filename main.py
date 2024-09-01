@@ -179,6 +179,7 @@ async def strategy(watching_broker, execution_broker, report_broker, watching_no
                                     is_buy=False,
                                     signer=position.signer,
                                     bot=position.bot,
+                                    is_paper=position.is_paper,
                                 ))
         
         if glb_daily_pnl[1] < HARD_STOP_PNL_THRESHOLD:

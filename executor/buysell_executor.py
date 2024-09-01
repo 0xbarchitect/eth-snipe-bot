@@ -200,7 +200,7 @@ class BuySellExecutor(BaseExecutor):
                 tx_status=TxStatus.SUCCESS,
                 pair=pair,
                 amount_in=amount_in,
-                amount_out=result[0][1],
+                amount_out=Web3.from_wei(result[0][1], 'ether'),
                 is_buy=is_buy,
                 signer=signer,
                 bot=bot.address,

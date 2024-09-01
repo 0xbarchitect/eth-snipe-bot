@@ -73,7 +73,7 @@ class ExecutionOrder:
         self.position = position
 
     def __str__(self) -> str:
-        return f"ExecutionOrder Block #{self.block_number} Pair {self.pair.address} AmountIn {self.amount_in} AmountOutMin {self.amount_out_min} Signer {self.signer} Bot {self.bot} IsBuy {self.is_buy} IsPaPer {self.is_paper}"
+        return f"ExecutionOrder Block #{self.block_number} Pair {self.pair.address} AmountIn {self.amount_in} AmountOutMin {self.amount_out_min} Signer {self.signer} Bot {self.bot} IsBuy {self.is_buy} IsPaper {self.is_paper}"
     
 class ExecutionAck:
     def __init__(self, lead_block, block_number, tx_hash, tx_status, pair: Pair, amount_in, amount_out, is_buy, signer=None, bot=None, is_paper=False) -> None:
