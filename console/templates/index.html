@@ -1,0 +1,60 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static jazzmin %}
+{% get_jazzmin_ui_tweaks as jazzmin_ui %}
+
+{% block bodyclass %}{{ block.super }} dashboard{% endblock %}
+
+{% block content_title %} {% trans 'Dashboard' %} {% endblock %}
+
+{% block breadcrumbs %}
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'admin:index' %}">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item">{% trans 'Dashboard' %}</li>
+    </ol>
+{% endblock %}
+
+{% block content %}
+<div id="content-main" class="col-12">
+    <div class="row">
+        <div class="col-12">
+        {% if principal and cash %}
+            <p>Principal: {{ principal }}</p>
+            <p>Cash: {{ cash }}</p>
+            <p>PnL: <span class="{% if pnl > 0 %} text-success {% else %} text-danger {% endif %}">{{ pnl }}</span></p>
+        {% endif %}
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12">
+            {% if executors %}
+                <div class="card">
+                    <div class="card-body table-responsive p-0">
+                        <table id="result_list" class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Address</th>
+                                    <th>Initial Balance</th>
+                                    <th>Current Balance</th>
+                                    <th>PnL</th>  
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for executor in executors %}
+                                <tr role="row" class="{% cycle 'even' 'odd' %}">
+                                    <td>{{ executor.id }}</td>
+                                    <td>{{ executor.address}}</td>
+                                    <td>{{ executor.initial_balance_h }}</td>
+                                    <td>{{ executor.current_balance }}</td>
+                                    <td><span class="{% if executor.pnl > 0 %} text-success {% else %} text-danger {% endif %}">{{ executor.pnl }}</span></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>      
+</div>  
+{% endblock %}

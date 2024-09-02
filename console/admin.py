@@ -1,5 +1,7 @@
 import os
 from web3 import Web3
+from decimal import Decimal
+
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -10,7 +12,29 @@ from console.models import Block, Transaction, Pair, Position, PositionTransacti
                             Executor, PnL
 
 class ConsoleAdminSite(admin.AdminSite):
-    index_title = "Console"
+    def index(self, request, extra_context=None):
+        extra_context = extra_context or {}
+
+        # executors
+        executors = Executor.objects.filter(is_deleted=0).order_by('-id')
+        extra_context['executors'] = executors
+
+        # calculate performance
+        principal = sum([executor.initial_balance for executor in executors])
+        cash = sum([executor.current_balance for executor in executors])
+        pnl = (Decimal(cash)-Decimal(principal))/Decimal(principal)*Decimal(100)
+
+        extra_context['principal']=round(principal,6)
+        extra_context['cash']=round(cash,6)
+        extra_context['pnl']=round(pnl,3)
+
+        # Add your context here
+        return super(ConsoleAdminSite, self).index(request, extra_context)
+    
+    site_header = "Bot Admin"
+    site_title = "Bot Admin"
+    index_title = "Welcome to Bot console"
+    index_template = 'index.html'
 
 class NoDeletePermissionModelAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
@@ -135,23 +159,15 @@ class ExecutorAdmin(FullPermissionModelAdmin):
     w3 = Web3(Web3.HTTPProvider(os.environ.get('HTTPS_URL')))
 
     list_filter = ['is_deleted']
-    list_display = ('id', 'address', 'initial_balance_h', 'current_balance', 'created_at', 'buttons')
-    fields = ('address', 'initial_balance',)
-    readonly_fields = ('address', 'initial_balance',)
+    list_display = ('id', 'address', 'initial_balance_h', 'current_balance', 'pnl', 'created_at', 'buttons')
+    fields = ('address', 'initial_balance', 'current_balance', 'pnl')
+    readonly_fields = ('address', 'initial_balance', 'current_balance', 'pnl')
     
     @admin.display(description='Actions')
     def buttons(self, obj):
         return format_html(f"""
         <button><a class="btn" href="/admin/console/executor/{obj.id}/change/">Edit</a></button>&emsp;
         """)
-    
-    @admin.display()
-    def initial_balance_h(self,obj):
-        return format_html(f"{round(obj.initial_balance,6)}")
-    
-    @admin.display()
-    def current_balance(self, obj):
-        return format_html(f"{round(Web3.from_wei(self.w3.eth.get_balance(Web3.to_checksum_address(obj.address)),'ether'),6)}")
     
 admin_site = ConsoleAdminSite(name="console_admin")
 

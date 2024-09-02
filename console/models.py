@@ -1,6 +1,10 @@
 from django.db import models
 from datetime import datetime
 
+import os
+from web3 import Web3
+from decimal import Decimal
+
 # Create your models here.
 class Block(models.Model):
     class Meta():
@@ -165,6 +169,8 @@ class Executor(models.Model):
     class Meta():
         db_table = "executor"
 
+    w3 = Web3(Web3.HTTPProvider(os.environ.get('HTTPS_URL')))
+    
     id = models.BigAutoField(primary_key=True)
     address = models.CharField(max_length=42, unique=True)
     initial_balance = models.FloatField(null=True, default=0)
@@ -172,6 +178,18 @@ class Executor(models.Model):
     created_at = models.DateTimeField(null=True,auto_now_add=True)
     updated_at = models.DateTimeField(null=True,auto_now=True)
     is_deleted = models.IntegerField(null=True,default=0)
+
+    @property
+    def initial_balance_h(self):
+        return round(self.initial_balance, 6)
+    
+    @property
+    def current_balance(self):
+        return round(Web3.from_wei(self.w3.eth.get_balance(Web3.to_checksum_address(self.address)),'ether'),6)
+
+    @property
+    def pnl(self):
+        return round((Decimal(self.current_balance)-Decimal(self.initial_balance))/Decimal(self.initial_balance)*Decimal(100), 3)
 
     def __str__(self) -> str:
         return f"{self.address}"

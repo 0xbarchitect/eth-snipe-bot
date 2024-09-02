@@ -206,3 +206,14 @@ class BotUpdateOrder:
 
     def __str__(self) -> str:
         return f"UpdateBotOrder for {self.bot.address} with execution ack {self.execution_ack.tx_hash}"
+    
+class ControlOrderType(IntEnum):
+    PENDING_POSITIONS=0
+
+class ControlOrder:
+    def __init__(self, type: ControlOrderType, data) -> None:
+        self.type = type
+        self.data = data
+
+    def __str__(self) -> str:
+        return f"ControlOrder Type{self.type} Data {self.data}"

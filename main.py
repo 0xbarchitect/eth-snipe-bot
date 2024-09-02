@@ -25,7 +25,8 @@ from helpers import load_abi, timer_decorator, calculate_price, calculate_next_b
                         constants, get_hour_in_vntz, calculate_expect_pnl, determine_epoch
 
 from data import ExecutionOrder, SimulationResult, ExecutionAck, Position, TxStatus, \
-                    ReportData, ReportDataType, BlockData, Pair, MaliciousPair, InspectionResult
+                    ReportData, ReportDataType, BlockData, Pair, MaliciousPair, InspectionResult, \
+                    ControlOrder, ControlOrderType
 
 # global variables
 glb_fullfilled = 0
@@ -415,9 +416,20 @@ async def main():
 
     async def handle_control_order():
         global glb_lock
+        global glb_inventory
+
+        async def handle_pending_positions(positions):
+            with glb_lock:
+                for pos in positions: 
+                    glb_inventory.append(pos)
+                    logging.warning(f"MAIN append {pos} to inventory upon bootstrap process")
 
         while True:
-            command = await control_receiver.coro_get()
+            order = await control_receiver.coro_get()
+
+            if order is not None and isinstance(order, ControlOrder):
+                if order.type==ControlOrderType.PENDING_POSITIONS:
+                    await handle_pending_positions(order.data)
 
     # control_receiver.put(ReportData(
     #     type=ReportDataType.BLACKLIST_BOOTSTRAP,

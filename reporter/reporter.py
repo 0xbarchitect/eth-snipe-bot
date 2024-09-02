@@ -1,15 +1,16 @@
 import asyncio
 import os
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 from time import time
+from asgiref.sync import sync_to_async
 
 import sys # for testing
 sys.path.append('..')
 
 from library import Singleton
-from data import ReportData, ReportDataType, BlockData, Pair, ExecutionAck
+from data import ReportData, ReportDataType, BlockData, Pair, ExecutionAck, ControlOrder, ControlOrderType
 from helpers import constants
 
 import django
@@ -30,7 +31,42 @@ class Reporter(metaclass=Singleton):
         self.sender = sender
 
     async def run(self):
-        await self.listen_report()
+        await asyncio.gather(
+            self.bootstrap(),
+            self.listen_report(),
+        )
+
+    async def bootstrap(self):
+        @sync_to_async
+        def get_pending_positions():
+            # fetch all pending positions
+            pending_positions = []
+            for pos in console.models.Position.objects.filter(is_liquidated=0, is_deleted=0).filter(purchased_at__gte=make_aware(datetime.now()-timedelta(hours=1))).all():
+                pending_positions.append(Position(
+                    pair=Pair(
+                        address=pos.pair.address,
+                        token=pos.pair.token,
+                        token_index=pos.pair.token_index,
+                        reserve_token=pos.pair.reserve_token,
+                        reserve_eth=pos.pair.reserve_eth,
+                        creator=pos.pair.creator,                        
+                    ),
+                    amount=pos.amount,
+                    amount_in=pos.investment,
+                    signer=pos.signer,
+                    bot=pos.bot,
+                    start_time=int(round(pos.purchased_at.timestamp()-10*60)), # TODO: shift start-time backward to force liquidate immediately
+                    buy_price=pos.buy_price,
+                ))
+            return pending_positions
+
+        pending_positions=await get_pending_positions()
+        if len(pending_positions)>0:
+            logging.warning(f"REPORTER Bootstrap pending positions with length {len(pending_positions)}")
+            self.sender.put(ControlOrder(
+                type=ControlOrderType.PENDING_POSITIONS,
+                data=pending_positions,
+            ))
 
     async def listen_report(self):
         logging.warning(f"REPORTER listen for report...")
