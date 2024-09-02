@@ -130,7 +130,7 @@ class Reporter(metaclass=Singleton):
             async def calculate_avg_daily_pnl(day_obj: datetime):
                 day_str = day_obj.strftime('%Y-%m-%d')
                 sum = await console.models.Position.objects.filter(purchased_at__date=day_str).aaggregate(Sum('pnl'))
-                hour_elapsed = get_hour_in_vntz(day_obj)+1
+                hour_elapsed = int(day_obj.strftime('%H'))+1
                 return Decimal(sum['pnl__sum']/hour_elapsed)
 
             timestamp = position.created_at.strftime('%Y-%m-%d %H:00:00')
