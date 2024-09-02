@@ -71,18 +71,17 @@ class EthCallSimulator:
             assert len(resultBuy[0]) == 2
             assert resultBuy[0][0] == Web3.to_wei(amount, 'ether')
 
-            logging.debug(f"SIMULATOR Buy result {resultBuy}")
+            logging.info(f"SIMULATOR Buy result {resultBuy}")
 
             # sell
             resultSell = self.sell(token, Web3.from_wei(resultBuy[0][1], 'ether'))
+            logging.info(f"SIMULATOR Sell result {resultSell}")
 
             if resultSell is None:
                 return None
 
             assert len(resultSell[0]) == 2
             assert resultSell[0][0] == resultBuy[0][1]
-
-            logging.debug(f"SIMULATOR Sell result {resultSell}")
 
             amount_out = Web3.from_wei(resultSell[0][1], 'ether')
             slippage = (Decimal(amount) - Decimal(amount_out))/Decimal(amount)*Decimal(10000)
@@ -126,7 +125,7 @@ class EthCallSimulator:
             bot = self.bot if bot is None else bot
 
             balance_slot_index = self.determine_balance_slot_index(token)
-            logging.debug(f"SIMULATOR Balance slot index {balance_slot_index}")
+            logging.info(f"SIMULATOR Balance slot index {balance_slot_index}")
 
             if balance_slot_index is not None:
                 storage_index = calculate_balance_storage_index(bot, balance_slot_index)
@@ -150,7 +149,7 @@ class EthCallSimulator:
         fake_amount = 10**27 # 1B
         fake_owner = self.signer
 
-        for idx in [0,1]:
+        for idx in range(9):
             storage_index = calculate_balance_storage_index(fake_owner, idx)
 
             result = self.w3.eth.call({
@@ -211,9 +210,9 @@ if __name__ == '__main__':
                     )
     
     result=simulator.inspect_pair(Pair(
-        address='0xd774f798808d1b46fa984a019122820ec68e9186',
-        token='0xf3749fec35448f26890d2f9dfd3c1a62e8b62732',
-        token_index=1,
+        address='0x1bf00256979d45402dd2340232da4ca2ba8531cc',
+        token='0x22a0005b11e76128239401f237c512962b32a38b',
+        token_index=0,
         reserve_token=0,
         reserve_eth=0
     ), 0.001, swap=True)
