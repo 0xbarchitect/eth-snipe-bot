@@ -170,7 +170,7 @@ class Executor(models.Model):
         db_table = "executor"
 
     w3 = Web3(Web3.HTTPProvider(os.environ.get('HTTPS_URL')))
-    
+
     id = models.BigAutoField(primary_key=True)
     address = models.CharField(max_length=42, unique=True)
     initial_balance = models.FloatField(null=True, default=0)
@@ -189,7 +189,7 @@ class Executor(models.Model):
 
     @property
     def pnl(self):
-        return round((Decimal(self.current_balance)-Decimal(self.initial_balance))/Decimal(self.initial_balance)*Decimal(100), 3)
+        return round((Decimal(self.current_balance)-Decimal(self.initial_balance))/Decimal(self.initial_balance)*Decimal(100), 3) if self.initial_balance>0 else 0
 
     def __str__(self) -> str:
         return f"{self.address}"

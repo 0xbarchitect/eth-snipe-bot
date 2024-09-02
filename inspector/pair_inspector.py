@@ -251,10 +251,10 @@ if __name__=="__main__":
     )
 
     pair = Pair(
-        address="0x69c3e12902b2d63361d21d8c6e6e2d33fcb92614",
-        token="0xc51a596039f8aa333e6b618825d29b8f2c210f95",
-        token_index=1,
-        creator="0xed88e6fe659837e9bfcd0a4cbb182fa49c75f56e",
+        address="0x2c8d305b384da60bcd6f487b76659c331413afda",
+        token="0x7ec93f55552217659ee7920a36e7afbe8ed51291",
+        token_index=0,
+        creator="0x578cf37a88baaea7374f6c6933f12db8a48fd40f",
         reserve_eth=1,
         reserve_token=0,
         created_at=0,

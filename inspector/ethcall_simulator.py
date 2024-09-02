@@ -124,7 +124,7 @@ class EthCallSimulator:
             bot = self.bot if bot is None else bot
 
             balance_slot_index = self.determine_balance_slot_index(token)
-            logging.debug(f"SIMULATOR Balance slot index {balance_slot_index}")
+            logging.info(f"SIMULATOR Balance slot index {balance_slot_index}")
 
             if balance_slot_index is not None:
                 storage_index = calculate_balance_storage_index(bot, balance_slot_index)

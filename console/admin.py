@@ -22,7 +22,7 @@ class ConsoleAdminSite(admin.AdminSite):
         # calculate performance
         principal = sum([executor.initial_balance for executor in executors])
         cash = sum([executor.current_balance for executor in executors])
-        pnl = (Decimal(cash)-Decimal(principal))/Decimal(principal)*Decimal(100)
+        pnl = (Decimal(cash)-Decimal(principal))/Decimal(principal)*Decimal(100) if principal>0 else 0
 
         extra_context['principal']=round(principal,6)
         extra_context['cash']=round(cash,6)
@@ -33,7 +33,7 @@ class ConsoleAdminSite(admin.AdminSite):
     
     site_header = "Bot Admin"
     site_title = "Bot Admin"
-    index_title = "Welcome to Bot console"
+    index_title = "Console"
     index_template = 'index.html'
 
 class NoDeletePermissionModelAdmin(admin.ModelAdmin):
