@@ -33,10 +33,10 @@ class Reporter(metaclass=Singleton):
         await self.listen_report()
 
     async def listen_report(self):
-        logging.info(f"REPORTER listen for report...")
+        logging.warning(f"REPORTER listen for report...")
         while True:
             report = await self.receiver.coro_get()
-            logging.info(f"REPORTER receive {report}")
+            logging.warning(f"REPORTER receive {report}")
 
             await self.save_to_db(report)
 

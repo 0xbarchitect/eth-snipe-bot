@@ -51,7 +51,7 @@ class BlockWatcher(metaclass=Singleton):
                 w3Async.middleware_onion.inject(async_geth_poa_middleware, layer=0)
 
             try:
-                logging.info(f"WATCHER websocket connected...")
+                logging.warning(f"WATCHER websocket connected...")
 
                 subscription_id = await w3Async.eth.subscribe("newHeads")
                 async for response in w3Async.ws.process_subscriptions():
@@ -224,21 +224,21 @@ class BlockWatcher(metaclass=Singleton):
 
             with glb_lock:
                 self.inventory.append(pair)
-            logging.info(f"WATCHER add pair {pair.address} to inventory length {len(self.inventory)}")
+            logging.warning(f"WATCHER add pair {pair.address} to inventory length {len(self.inventory)}")
 
         def remove_pair_from_inventory(pair):
             for idx,pr in enumerate(self.inventory):
                 if pr.address == pair.address:
                     with glb_lock:
                         self.inventory.pop(idx)
-                        logging.info(f"WATCHER remove pair {pair.address} from inventory length {len(self.inventory)}")
+                        logging.warning(f"WATCHER remove pair {pair.address} from inventory length {len(self.inventory)}")
 
         while True:
             report = await self.report_broker.coro_get()
 
             if report is not None and isinstance(report, ExecutionAck) and report.pair is not None:
                 try:
-                    logging.info(f"WATCHER receive report {report}")
+                    logging.warning(f"WATCHER receive report {report}")
                     if report.is_buy and report.tx_status == TxStatus.SUCCESS:
                         if report.pair.address not in [pair.address for pair in self.inventory]:
                             add_pair_to_inventory(report.pair)

@@ -64,14 +64,13 @@ class EthCallSimulator:
         try:
             # buy
             resultBuy = self.buy(token, amount)
+            logging.info(f"SIMULATOR Buy result {resultBuy}")
 
             if resultBuy is None:
                 return None
 
             assert len(resultBuy[0]) == 2
             assert resultBuy[0][0] == Web3.to_wei(amount, 'ether')
-
-            logging.info(f"SIMULATOR Buy result {resultBuy}")
 
             # sell
             resultSell = self.sell(token, Web3.from_wei(resultBuy[0][1], 'ether'))
@@ -125,7 +124,7 @@ class EthCallSimulator:
             bot = self.bot if bot is None else bot
 
             balance_slot_index = self.determine_balance_slot_index(token)
-            logging.info(f"SIMULATOR Balance slot index {balance_slot_index}")
+            logging.debug(f"SIMULATOR Balance slot index {balance_slot_index}")
 
             if balance_slot_index is not None:
                 storage_index = calculate_balance_storage_index(bot, balance_slot_index)

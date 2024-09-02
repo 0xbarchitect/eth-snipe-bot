@@ -221,7 +221,7 @@ class PairInspector(metaclass=Singleton):
                 pair = future_to_pair[future]
                 try:
                     result = future.result()
-                    logging.info(f"INSPECTOR inspect pair {pair} {result}")
+                    logging.warning(f"INSPECTOR inspect pair {pair} {result}")
                     results.append(result)
                 except Exception as e:
                     logging.error(f"INSPECTOR inspect pair {pair} error {e}")

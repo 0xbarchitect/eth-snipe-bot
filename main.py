@@ -5,7 +5,6 @@ import threading
 import concurrent.futures
 
 from web3 import Web3
-
 import os
 import logging
 from decimal import Decimal
@@ -153,7 +152,7 @@ async def strategy(watching_broker, execution_broker, report_broker, watching_no
                     for pair in block_data.inventory:
                         if position.pair.address == pair.address:
                             position.pnl = calculate_pnl_percentage(position, pair)
-                            logging.info(f"MAIN {position} update PnL {position.pnl}")
+                            logging.warning(f"MAIN {position} update PnL {position.pnl}")
                             
                             if position.pnl > Decimal(TAKE_PROFIT_PERCENTAGE) or position.pnl < Decimal(STOP_LOSS_PERCENTAGE):
                                 logging.warning(f"MAIN {position} take profit or stop loss caused by pnl {position.pnl}")
@@ -195,12 +194,12 @@ async def strategy(watching_broker, execution_broker, report_broker, watching_no
             if get_hour_in_vntz(datetime.now()) % EPOCH_TIME_HOURS == 0:
                 with glb_lock:
                     glb_daily_pnl = (datetime.now(), 0)
-                    logging.info(f"MAIN reset epoch pnl at {glb_daily_pnl[0].strftime('%Y-%m-%d %H:00:00')}")
+                    logging.warning(f"MAIN reset epoch pnl at {glb_daily_pnl[0].strftime('%Y-%m-%d %H:00:00')}")
 
             if get_hour_in_vntz(datetime.now())==0:
                 with glb_lock:
                     BUY_AMOUNT=float(os.environ.get('BUY_AMOUNT'))
-                    logging.info(f"MAIN reset buy-amount to initial value {BUY_AMOUNT} at 0 a.m VNT")
+                    logging.warning(f"MAIN reset buy-amount to initial value {BUY_AMOUNT} at 0am VNT")
 
         if len(glb_watchlist)>0:
             logging.info(f"MAIN watching list {len(glb_watchlist)}")
@@ -208,7 +207,7 @@ async def strategy(watching_broker, execution_broker, report_broker, watching_no
             inspection_batch=[]
             for pair in glb_watchlist:
                 if (block_data.block_timestamp - pair.created_at) > pair.inspect_attempts*INSPECT_INTERVAL_SECONDS:
-                    logging.info(f"MAIN pair {pair.address} inspect time #{pair.inspect_attempts + 1} elapsed")
+                    logging.warning(f"MAIN pair {pair.address} inspect time #{pair.inspect_attempts + 1} elapsed")
                     inspection_batch.append(pair)
 
             if len(inspection_batch)>0:
@@ -227,7 +226,7 @@ async def strategy(watching_broker, execution_broker, report_broker, watching_no
                                     # in order to re-verify multiple times to gain reliability
                                     #pair.last_inspected_block = block_data.block_number
                                     
-                                logging.info(f"MAIN update upon inspect attempts {pair}")
+                                logging.warning(f"MAIN update upon inspect attempts {pair}")
 
                             if pair.inspect_attempts >= MAX_INSPECT_ATTEMPTS:
                                 with glb_lock:
@@ -238,7 +237,7 @@ async def strategy(watching_broker, execution_broker, report_broker, watching_no
                                     is_paper = True if RUN_MODE==constants.PAPER_TRADE_MODE else False
                                     send_exec_order(block_data,pair,is_paper)
                                 else:
-                                    logging.info(f"MAIN pair {pair.address} not qualified for execution due to numberTxMM {pair.number_tx_mm} is not sufficient or contract unverified")
+                                    logging.warning(f"MAIN pair {pair.address} not qualified for execution due to numberTxMM {pair.number_tx_mm} is not sufficient or contract unverified")
 
                 # remove simulation failed pair
                 failed_pairs = [pair.address for pair in inspection_batch if pair.address not in [result.simulation_result.pair.address for result in results if result.simulation_result is not None]]
@@ -267,12 +266,12 @@ async def strategy(watching_broker, execution_broker, report_broker, watching_no
 
                                 glb_watchlist.append(pair)
 
-                            logging.info(f"MAIN add pair {pair.address} to watchlist")
+                            logging.warning(f"MAIN add pair {pair.address} to watchlist length {len(glb_watchlist)}")
                         else:
                             # send order immediately
                             send_exec_order(block_data, result.pair)
             else:
-                logging.info(f"MAIN watchlist is already full capacity")
+                logging.warning(f"MAIN watchlist is already full capacity")
 
 @timer_decorator
 def inspect(pairs, block_number, is_initial=False) -> List[InspectionResult]:
@@ -371,7 +370,7 @@ async def main():
                                 bot=report.bot,
                                 is_paper=report.is_paper,
                             ))
-                            logging.info(f"MAIN append {report.pair.address} to inventory")
+                            logging.warning(f"MAIN append {report.pair.address} to inventory length {len(glb_inventory)}")
                     else:
                         with glb_lock:
                             glb_fullfilled -= 1
@@ -386,9 +385,9 @@ async def main():
                                 glb_daily_pnl = (glb_daily_pnl[0], 0)
                                 logging.warning(f"MAIN increase buy-amount to {BUY_AMOUNT} caused by PnL exceed threshold {calculate_expect_pnl(BUY_AMOUNT,MIN_BUY_AMOUNT,MIN_EXPECTED_PNL,RISK_REWARD_RATIO)}, reset PnL")
 
-                            logging.info(f"MAIN update PnL {glb_daily_pnl}")
+                            logging.warning(f"MAIN update PnL {glb_daily_pnl}")
                 else:
-                    logging.info(f"MAIN execution failed, reset lock...")
+                    logging.warning(f"MAIN execution failed, reset lock...")
                     if report.is_buy:
                         with glb_lock:
                             glb_fullfilled -= 1
@@ -399,7 +398,7 @@ async def main():
 
                             pnl = (-Decimal(BUY_AMOUNT)-Decimal(GAS_COST))/Decimal(BUY_AMOUNT)*Decimal(100)
                             glb_daily_pnl = (glb_daily_pnl[0], glb_daily_pnl[1] + pnl)
-                            logging.info(f"MAIN update PnL to value {round(glb_daily_pnl[1],6)} upon liquidation failed")
+                            logging.warning(f"MAIN update PnL to value {round(glb_daily_pnl[1],6)} upon liquidation failed")
 
                             # decrease the buy-amount to reduce risk exposure
                             if glb_daily_pnl[1]<-100 and BUY_AMOUNT-AMOUNT_CHANGE_STEP>=MIN_BUY_AMOUNT:
@@ -413,7 +412,6 @@ async def main():
                             data=[report.pair.creator]
                         ))
                         logging.warning(f"MAIN add {report.pair.creator} to blacklist")
-                        logging.info(f"MAIN update PnL {glb_daily_pnl}")
 
     async def handle_control_order():
         global glb_lock
