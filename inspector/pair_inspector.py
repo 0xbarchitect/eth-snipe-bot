@@ -110,7 +110,7 @@ class PairInspector(metaclass=Singleton):
         txlist = self.get_txlist(pair.token, from_block, to_block)
         
         if int(txlist['status'])==constants.TX_SUCCESS_STATUS and len(txlist['result'])>0:
-            txs = [tx for tx in txlist['result'] if int(tx['txreceipt_status'])==constants.TX_SUCCESS_STATUS and tx['to'].lower()==pair.token.lower() and tx['from'].lower()==pair.creator.lower() and tx['methodId'] not in [constants.RENOUNCE_OWNERSHIP_METHOD_ID]]
+            txs = [tx for tx in txlist['result'] if int(tx['txreceipt_status'])==constants.TX_SUCCESS_STATUS and tx['to'].lower()==pair.token.lower() and tx['methodId'] not in [constants.RENOUNCE_OWNERSHIP_METHOD_ID, constants.APPROVE_METHOD_ID]]
             if len(txs)>0:
                 logging.warning(f"INSPECTOR Pair {pair.address} detected malicious due to abnormal incoming txs {txs}")
             return len(txs)
