@@ -45,7 +45,7 @@ class BlockData:
         """
 
 class Position:
-    def __init__(self, pair, amount, buy_price, start_time, pnl=0, signer=None, bot=None, is_paper=False) -> None:
+    def __init__(self, pair, amount, buy_price, start_time, pnl=0, signer=None, bot=None, amount_in=None) -> None:
         self.pair = pair
         self.amount = amount
         self.buy_price = buy_price
@@ -53,11 +53,11 @@ class Position:
         self.pnl = pnl
         self.signer = signer
         self.bot = bot
-        self.is_paper = is_paper
+        self.amount_in = amount_in
 
     def __str__(self) -> str:
         return f"Position {self.pair.address} amount {self.amount} buyPrice {self.buy_price} startTime {self.start_time} signer {self.signer} bot {self.bot} pnl {self.pnl}"
-   
+    
 
 class ExecutionOrder:
     def __init__(self, block_number, block_timestamp, pair: Pair, amount_in, amount_out_min, is_buy, signer=None, bot=None, is_paper=False, position: Position=None) -> None:

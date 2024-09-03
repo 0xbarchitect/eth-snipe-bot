@@ -10,7 +10,7 @@ import sys # for testing
 sys.path.append('..')
 
 from library import Singleton
-from data import ReportData, ReportDataType, BlockData, Pair, ExecutionAck, ControlOrder, ControlOrderType
+from data import ReportData, ReportDataType, BlockData, Position, Pair, ExecutionAck, ControlOrder, ControlOrderType
 from helpers import constants, get_hour_in_vntz
 
 import django
@@ -19,7 +19,7 @@ from django.db.models import Sum
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "admin.settings")
 django.setup()
 
-from console.models import Block, Transaction, Position, PositionTransaction, BlackList
+from console.models import Block, Transaction, PositionTransaction, BlackList
 import console.models
 
 BUY_AMOUNT=float(os.environ.get('BUY_AMOUNT'))
@@ -191,9 +191,9 @@ class Reporter(metaclass=Singleton):
             else:
                 logging.debug(f"pair exists id #{pair.id}")
 
-            position = await Position.objects.filter(pair__address=execution_ack.pair.address.lower(), is_deleted=0).afirst()
+            position = await console.models.Position.objects.filter(pair__address=execution_ack.pair.address.lower(), is_deleted=0).afirst()
             if position is None:
-                position = Position(
+                position = console.models.Position(
                     pair=pair,
                     amount=execution_ack.amount_out if execution_ack.is_buy else 0,
                     buy_price=Decimal(execution_ack.amount_in)/Decimal(execution_ack.amount_out) if execution_ack.amount_out>0 and execution_ack.is_buy else 0,
