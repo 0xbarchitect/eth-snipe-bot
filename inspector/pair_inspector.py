@@ -88,6 +88,11 @@ class PairInspector(metaclass=Singleton):
 
     @timer_decorator
     def is_contract_verified(self, pair: Pair) -> False:
+        def source_code_is_not_malicious(source):
+            if 'family' in source:
+                return True
+            return False
+
         if pair.contract_verified:
             return True
         
@@ -98,7 +103,7 @@ class PairInspector(metaclass=Singleton):
 
             if int(res['status'])==1 and len(res['result'][0].get('Library',''))==0:
                 if CONTRACT_VERIFIED_REQUIRED==1:
-                    return True if len(res['result'][0].get('SourceCode',''))>0 and len(res['result'][0].get('ContractName'))>0 else False
+                    return True if len(res['result'][0].get('SourceCode',''))>0 and len(res['result'][0].get('ContractName'))>0 and not source_code_is_not_malicious(res['result'][0]['SourceCode']) else False
                 return True
         else:
             logging.error(f"INSPECTOR EtherscanAPI GetSourceCode error:: {r.status_code}")
@@ -251,10 +256,10 @@ if __name__=="__main__":
     )
 
     pair = Pair(
-        address="0x2c8d305b384da60bcd6f487b76659c331413afda",
-        token="0x7ec93f55552217659ee7920a36e7afbe8ed51291",
-        token_index=0,
-        creator="0x578cf37a88baaea7374f6c6933f12db8a48fd40f",
+        address="0xc6a68497790cfd61f8b8c0d93e3ad67b82957d25",
+        token="0xff00bd801eacaa8b11101fde025fdc81d8dfe5b0",
+        token_index=1,
+        creator="0x1e9c7f4a0f3c2a0e167f059bd4e8cbf49af0659c",
         reserve_eth=1,
         reserve_token=0,
         created_at=0,
@@ -269,4 +274,4 @@ if __name__=="__main__":
     #print(f"number mm_tx {inspector.number_tx_mm(pair, 41665828, 41665884)}")
     #print(f"is malicious {inspector.is_malicious(pair, 41665828, is_initial=True)}")
 
-    inspector.inspect_batch([pair], 20654295, is_initial=True)
+    inspector.inspect_batch([pair], 20669433, is_initial=True)
