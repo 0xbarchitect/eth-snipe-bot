@@ -6,6 +6,8 @@ import concurrent.futures
 
 from web3 import Web3
 import os
+import sys
+import signal
 import logging
 from decimal import Decimal
 from time import time
@@ -293,6 +295,9 @@ def inspect(pairs, block_number, is_initial=False) -> List[InspectionResult]:
     return inspector.inspect_batch(pairs,block_number, is_initial)
 
 def execution_process(execution_broker, report_broker):
+    # set process group the same as main process
+    os.setpgid(0, os.getppid())
+
     executor = BuySellExecutor(
         http_url=os.environ.get('HTTPS_URL'),
         treasury_key=os.environ.get('MANAGER_KEY'),
@@ -330,6 +335,9 @@ async def main():
     execution_report = aioprocessing.AioQueue()
     report_broker = aioprocessing.AioQueue()
     control_receiver = aioprocessing.AioQueue()
+
+    # set process group
+    os.setpgid(0, 0)
     
     # EXECUTION process
     p2 = Process(target=execution_process, args=(execution_broker,execution_report,))
@@ -457,6 +465,12 @@ async def main():
                         reporter.run(),
                         handle_control_order(),
                         )
+def signal_handler(signum, frame):
+  print("Received termination signal. Shutting down...")
+  # Add any cleanup code here
+  sys.exit(0)
 
 if __name__=="__main__":
+    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)
     asyncio.run(main())
