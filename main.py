@@ -24,7 +24,7 @@ from inspector import PairInspector
 from executor import BuySellExecutor
 from reporter import Reporter
 from helpers import load_abi, timer_decorator, calculate_price, calculate_next_block_base_fee, \
-                        constants, get_hour_in_vntz, calculate_expect_pnl, determine_epoch
+                        constants, get_hour_in_vntz, calculate_expect_pnl, determine_epoch, GasHelper
 
 from data import ExecutionOrder, SimulationResult, ExecutionAck, Position, TxStatus, \
                     ReportData, ReportDataType, BlockData, Pair, MaliciousPair, InspectionResult, \
@@ -69,6 +69,7 @@ MAX_BUY_AMOUNT=float(os.environ.get('MAX_BUY_AMOUNT'))
 MIN_EXPECTED_PNL=float(os.environ.get('MIN_EXPECTED_PNL'))
 RISK_REWARD_RATIO=float(os.environ.get('RISK_REWARD_RATIO'))
 EPOCH_TIME_HOURS=int(os.environ.get('EPOCH_TIME_HOURS'))
+MAX_GAS_PRICE_ALLOWANCE=float(os.environ.get('MAX_GAS_PRICE_ALLOWANCE'))
 
 DEADLINE_DELAY_SECONDS = 30
 GAS_LIMIT = 250*10**3
@@ -104,6 +105,9 @@ async def strategy(watching_broker, execution_broker, report_broker, watching_no
     global glb_auto_run
     global BUY_AMOUNT
 
+    gas_helper = GasHelper(os.environ.get('ETHERSCAN_API_URL'), os.environ.get('BASESCAN_API_KEYS'))
+    #print(f"!!!! GAS_PRICE {gas_helper.get_base_gas_price()}")
+
     def calculate_pnl_percentage(position, pair):        
         numerator = Decimal(position.amount)*calculate_price(pair.reserve_token, pair.reserve_eth) - Decimal(BUY_AMOUNT) - Decimal(GAS_COST)
         denominator = Decimal(BUY_AMOUNT)
@@ -111,6 +115,11 @@ async def strategy(watching_broker, execution_broker, report_broker, watching_no
     
     def send_exec_order(block_data, pair, is_paper=False):
         global glb_fullfilled
+
+        gas_price = gas_helper.get_base_gas_price()
+        if gas_price>MAX_GAS_PRICE_ALLOWANCE:
+            logging.error(f"Cancel execution due to Gas price {gas_price} is greater than max allowance {MAX_GAS_PRICE_ALLOWANCE}")
+            return None
 
         if glb_fullfilled < INVENTORY_CAPACITY:
             with glb_lock:

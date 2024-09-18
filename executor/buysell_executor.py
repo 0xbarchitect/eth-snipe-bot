@@ -364,35 +364,35 @@ if __name__ == "__main__":
         await asyncio.sleep(1) # waiting for bot is fully initialized
 
         pair=Pair(
-            address='0xd961671733efbb8f65312B756CC6e3cDa3877410',
-            token='0x18d098dd0780ec54f154173c2768e1b0b140c631',
-            token_index=0,
+            address='0xac318fc97c8b9133a6541eaa57f37d9d51b2451c',
+            token='0xf16b58d2bdb36a9be9ba9d4b847b909bf7297955',
+            token_index=1,
         )
         # BUY
-        order_receiver.put(ExecutionOrder(
-            block_number=0, 
-            block_timestamp=0, 
-            pair=pair,
-            signer='0xecb137C67c93eA50b8C259F8A8D08c0df18222d9',
-            bot='0xadfd91a139c36715d09bf97943e6ac8d48f00f4b',
-            amount_in=0.001667,
-            amount_out_min=0,
-            is_buy=True,
-            is_paper=True,
-        ))
-        
-        # SELL
         # order_receiver.put(ExecutionOrder(
-        #     block_number=0,
-        #     block_timestamp=0,
+        #     block_number=0, 
+        #     block_timestamp=0, 
         #     pair=pair,
         #     signer='0xecb137C67c93eA50b8C259F8A8D08c0df18222d9',
         #     bot='0xadfd91a139c36715d09bf97943e6ac8d48f00f4b',
-        #     amount_in=6842714.885,
+        #     amount_in=0.001667,
         #     amount_out_min=0,
-        #     is_buy=False,
+        #     is_buy=True,
         #     is_paper=True,
         # ))
+        
+        # SELL
+        order_receiver.put(ExecutionOrder(
+            block_number=0,
+            block_timestamp=0,
+            pair=pair,
+            signer='0x0815e09b64994fac24f919c90af4fdd1bbec06d9',
+            bot='0x090effb0722ea3a2acd5cc96e2531658fee79db9',
+            amount_in=6842714.885,
+            amount_out_min=0,
+            is_buy=False,
+            is_paper=False,
+        ))
 
     async def main_loop():
         await asyncio.gather(executor.run(), simulate_order())
