@@ -1,5 +1,5 @@
-# Ethereum Uniswap-v2 Sniper bot
-Sniper bot for Uniswap-v2 on Ethereum for fun and profit.
+# Ethereum Uniswap-V2 Sniper bot
+Sniper bot for Uniswap-V2 on Ethereum for fun and profit.
 
 ## Prerequisites
 
