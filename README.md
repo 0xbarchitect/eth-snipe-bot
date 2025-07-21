@@ -1,12 +1,16 @@
-# Ethereum Uniswap-V2 Sniper bot
-Sniper bot for Uniswap-V2 on Ethereum for fun and profit.
+# Ethereum Snipe bot
+Sniper bot for Ethereum for fun and profit.
+
+## Architecture
+
+![system architecture](./docs/architecture.png)
 
 ## Prerequisites
 
 - [Python 3.11](https://www.python.org/downloads/release/python-3110/)
 - [Foundry](https://book.getfoundry.sh/getting-started/installation)
 - [PyREVM](https://github.com/0xbarchitect/pyrevm)
-- [Postgresql LTS](https://hub.docker.com/_/postgres)
+- [Postgresql v15](https://hub.docker.com/_/postgres)
 
 ## Setup
 
