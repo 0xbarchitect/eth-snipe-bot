@@ -1,5 +1,5 @@
 # Ethereum Snipe bot
-Sniper bot for Ethereum for fun and profit.
+Sniper bot for Ethereum for fun and profit. A production-ready bot with indexing, alpha and execution layers. It uses REVM for robust simulation.
 
 ## Architecture
 
